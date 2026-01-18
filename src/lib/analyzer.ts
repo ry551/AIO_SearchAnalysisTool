@@ -53,15 +53,38 @@ JSON形式で回答してください。構成は以下の通り：
     for (const modelName of modelsToTry) {
         try {
             console.log(`Trying model: ${modelName}`);
-            const model = genAI.getGenerativeModel({ model: modelName });
+            // JSONモードを有効化（対応しているモデルのみ）
+            const model = genAI.getGenerativeModel({
+                model: modelName,
+                generationConfig: {
+                    responseMimeType: "application/json",
+                }
+            });
+
             const result = await model.generateContent(systemPrompt);
             const responseText = result.response.text();
 
+            // JSON文字列のクリーニング（制御文字の除去）
+            const cleanJson = (str: string) => {
+                // 文字列リテラル内の改行やタブが原因でエラーになることがあるため、
+                // JSONとして不正な制御文字（0x00-0x1F）を置換またはエスケープ処理する
+                return str.replace(/[\u0000-\u001F]+/g, (match) => {
+                    if (match === "\n") return "\\n";
+                    if (match === "\r") return "\\r";
+                    if (match === "\t") return "\\t";
+                    return "";
+                });
+            };
+
             const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                return JSON.parse(jsonMatch[0]);
+            const targetText = jsonMatch ? jsonMatch[0] : responseText;
+
+            try {
+                return JSON.parse(targetText);
+            } catch (pE) {
+                console.warn("Standard parse failed, trying cleaned version...");
+                return JSON.parse(cleanJson(targetText));
             }
-            return JSON.parse(responseText);
         } catch (error: any) {
             lastError = error;
             console.warn(`Model ${modelName} failed:`, error.message);

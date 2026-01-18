@@ -17,6 +17,8 @@ export default function Home() {
     const [loading, setLoading] = useState(false);
     const [currentStep, setCurrentStep] = useState<number | null>(null);
     const [resultUrl, setResultUrl] = useState<string | null>(null);
+    const [isRecording, setIsRecording] = useState(false);
+    const recognitionRef = useRef<any>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -100,8 +102,64 @@ export default function Home() {
         }
     };
 
+    const toggleSpeechRecognition = () => {
+        if (isRecording) {
+            recognitionRef.current?.stop();
+            setIsRecording(false);
+            return;
+        }
+
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("お使いのブラウザは音声認識に対応していません。");
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = "ja-JP";
+        recognition.interimResults = true;
+        recognition.continuous = true;
+
+        recognition.onstart = () => {
+            console.log("Speech recognition started");
+            setIsRecording(true);
+        };
+        recognition.onend = () => {
+            console.log("Speech recognition ended");
+            setIsRecording(false);
+        };
+        recognition.onerror = (event: any) => {
+            console.error("Speech Recognition Error:", event.error);
+            setIsRecording(false);
+            if (event.error === "not-allowed") {
+                alert("マイクの使用が許可されていません。ブラウザの設定を確認してください。");
+            }
+        };
+
+        recognition.onresult = (event: any) => {
+            let interimTranscript = "";
+            let finalTranscript = "";
+
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcript;
+                } else {
+                    interimTranscript += transcript;
+                }
+            }
+
+            if (finalTranscript) {
+                setPrompt(prev => (prev ? `${prev} ${finalTranscript}` : finalTranscript));
+            }
+        };
+
+        recognitionRef.current = recognition;
+        recognition.start();
+    };
+
     return (
-        <main className="w-full px-6 py-20 min-h-screen flex flex-col items-center">
+        <main className="w-full px-4 py-20 min-h-screen flex flex-col items-center">
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -110,23 +168,28 @@ export default function Home() {
                 <h1 className="text-5xl font-extrabold mb-4 premium-gradient-text tracking-tight">
                     AIO & Search Analysis Agent
                 </h1>
-                <p className="text-gray-400 text-lg">
-                    検索上位の「勝因」を瞬時に特定し、あなたのNotionへ。
-                </p>
+
             </motion.div>
 
-            <div className="w-full flex flex-col">
+            <div className="w-full max-w-5xl flex flex-col px-4">
                 <div
                     className="w-full gemini-container shadow-2xl flex flex-col cursor-text overflow-hidden"
                     onClick={() => textareaRef.current?.focus()}
                 >
-                    <div className="p-4 w-full flex-1 flex flex-col">
-                        <form onSubmit={handleAnalyze} className="flex-1 flex flex-col">
+                    {/* 親div：w-full を指定し、flex-1 で高さを確保 */}
+                    <div className="w-full flex-1 flex flex-col">
+                        {/* form：ここにも w-full が必須です */}
+                        <form onSubmit={handleAnalyze} className="w-full flex-1 flex flex-col">
                             <textarea
                                 ref={textareaRef}
-                                className="w-full bg-transparent flex-1 text-2xl placeholder:text-gray-500 overflow-hidden leading-relaxed p-6 m-0 focus:outline-none resize-none"
-                                style={{ color: "var(--antigravity-text)", minHeight: "60px" }}
-                                placeholder="Gemini 3 に相談"
+                                /* whitespace系を削除し、px-8 で左右にしっかり余裕を持たせる */
+                                className="w-full bg-transparent flex-1 text-lg placeholder:text-gray-500 leading-relaxed px-8 py-8 m-0 focus:outline-none resize-none break-words"
+                                style={{
+                                    color: "var(--antigravity-text)",
+                                    minHeight: "80px",
+                                    width: "100%", // インラインでも幅を強制
+                                }}
+                                placeholder="リサーチしたいKWを入力してください"
                                 value={prompt}
                                 onChange={(e) => setPrompt(e.target.value)}
                                 disabled={loading}
@@ -159,8 +222,31 @@ export default function Home() {
                     </AnimatePresence>
 
                     {!loading && (
-                        <button type="button" className="p-2 rounded-full hover:bg-white/10 transition-colors text-gray-400 bg-transparent">
-                            <Mic className="w-6 h-6" />
+                        <button
+                            type="button"
+                            onClick={toggleSpeechRecognition}
+                            className={cn(
+                                "p-2 rounded-full transition-all relative z-10",
+                                isRecording ? "text-red-500 ring-4 ring-red-500/20" : "text-gray-400 hover:bg-white/10"
+                            )}
+                        >
+                            <Mic className={cn("w-6 h-6", isRecording && "animate-pulse")} />
+                            {isRecording && (
+                                <>
+                                    <motion.div
+                                        initial={{ scale: 1, opacity: 0.6 }}
+                                        animate={{ scale: 2, opacity: 0 }}
+                                        transition={{ repeat: Infinity, duration: 1.5, ease: "easeOut" }}
+                                        className="absolute inset-0 rounded-full bg-red-500 -z-10"
+                                    />
+                                    <motion.div
+                                        initial={{ scale: 1, opacity: 0.3 }}
+                                        animate={{ scale: 2.5, opacity: 0 }}
+                                        transition={{ repeat: Infinity, duration: 1.5, ease: "easeOut", delay: 0.5 }}
+                                        className="absolute inset-0 rounded-full bg-red-500 -z-10"
+                                    />
+                                </>
+                            )}
                         </button>
                     )}
 

@@ -33,6 +33,10 @@ textarea {
   scrollbar-width: none;
 }
 
+textarea::placeholder {
+  white-space: nowrap;
+}
+
 button {
   background: none;
   color: inherit;
