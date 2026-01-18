@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 10, 10, 15;
+  --background-end-rgb: 0, 0, 0;
+
+  --accent-primary: #8b5cf6;
+  --accent-secondary: #ec4899;
+  --antigravity-text: rgb(227, 227, 230);
+}
+
+textarea {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  resize: none !important;
+  box-shadow: none !important;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Hide scrollbar */
+textarea::-webkit-scrollbar {
+  display: none;
+}
+
+textarea {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+button {
+  background: none;
+  color: inherit;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  outline: inherit;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: #131314;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+}
+
+.gemini-container {
+  background: #1e1f20;
+  border-radius: 0px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gemini-container:focus-within {
+  background: #232425;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.premium-gradient-text {
+  background: linear-gradient(135deg, #4285f4, #9b72cb, #d96570);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
